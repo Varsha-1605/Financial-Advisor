@@ -13,11 +13,11 @@ import streamlit as st
 import plotly.graph_objects as go
 from chromadb.config import Settings
 import json
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 
-# Load environment variables
-load_dotenv()
-
+# # Load environment variables
+# load_dotenv()
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
 
