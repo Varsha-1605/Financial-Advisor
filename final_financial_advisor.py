@@ -13,26 +13,38 @@ import streamlit as st
 import plotly.graph_objects as go
 from chromadb.config import Settings
 import json
+import tempfile
+
+
+st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
 # from dotenv import load_dotenv
 
 # # Load environment variables
 # load_dotenv()
 os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
 
-os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
-
-st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
-
-# Fetch API key from environment variable
-openapi_key = os.getenv('OPENAI_API_KEY')
+openapi_key = st.secrets["OPENAI_API_KEY"]
 if openapi_key is None:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 os.environ['OPENAI_API_KEY'] = openapi_key
 
+# st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
+
+
+
+
+# Fetch API key from environment variable
+# openapi_key = os.getenv('OPENAI_API_KEY')
+# if openapi_key is None:
+#     raise ValueError("OPENAI_API_KEY environment variable is not set")
+# os.environ['OPENAI_API_KEY'] = openapi_key
+
+
+
 # Configuration
 class Config:
     DATA_FILE = 'Finance_data.csv'
-    VECTOR_DB_DIR = 'vector_db'
+    VECTOR_DB_DIR = tempfile.mkdtemp()
     
     # st.sidebar.markdown(f""" <h1 style="font-size:30px; color:#FFD700;">Quick Guide 🚀 </h1>""", unsafe_allow_html=True)
     HOW_TO_USE = """
@@ -76,8 +88,6 @@ class Config:
         "How long do you plan to hold your investments before needing to access the funds? ⏱️💼",
         "What is your primary goal for investing? 🎯💸"
     ]
-
-# ... (keep other functions as they are)
 
 
 # Data Processing Functions
