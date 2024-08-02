@@ -38,7 +38,7 @@ jsonschema
 markdown-it-py
 MarkupSafe
 mdurl
-protobuf==3.20.3
+
 pyarrow
 Pygments
 Pympler
@@ -53,3 +53,4 @@ tzlocal
 urllib3
 validators
 watchdog
+protobuf==3.20.1
