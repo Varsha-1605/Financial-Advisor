@@ -16,22 +16,23 @@
 
 
 
+
+
 import pandas as pd
 import os
-import re
-import shutil
 import logging
 from tqdm import tqdm
 from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Chroma
+from langchain.vectorstores import SKLearnVectorStore
+from sklearn.neighbors import NearestNeighbors
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import streamlit as st
-import plotly.graph_objects as go
 import json
-import tempfile
+
+
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -47,7 +48,7 @@ os.environ['OPENAI_API_KEY'] = openapi_key
 
 class Config:
     DATA_FILE = 'Finance_data.csv'
-    VECTOR_DB_DIR = tempfile.mkdtemp()
+    # VECTOR_DB_DIR = tempfile.mkdtemp()
     HOW_TO_USE = """
     1. 📊 Click 'Load Data' to initialize the AI.
     2. 📝 Complete the risk assessment questionnaire.
@@ -143,31 +144,22 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=200):
     return split_docs
 
 @st.cache_resource
-def create_vector_db(_texts, persist_directory):
+def create_vector_db(_texts):
     logging.info("Creating vector database")
     openai_embeddings = OpenAIEmbeddings()
     try:
-        if os.path.exists(persist_directory) and os.listdir(persist_directory):
-            logging.info("Loading existing vector database")
-            vectordb = Chroma(persist_directory=persist_directory, embedding_function=openai_embeddings)
-            st.info("Loaded existing vector database.")
-        else:
-            logging.info("Creating new vector database")
-            if os.path.exists(persist_directory):
-                shutil.rmtree(persist_directory)
-            os.makedirs(persist_directory, exist_ok=True)
-            vectordb = Chroma.from_documents(
-                documents=_texts,
-                embedding=openai_embeddings,
-                persist_directory=persist_directory
-            )
-            st.success("Created new vector database.")
+        vectordb = SKLearnVectorStore.from_documents(
+            documents=_texts,
+            embedding=openai_embeddings,
+            algorithm="brute",  # You can also try "ball_tree" or "kd_tree"
+            n_neighbors=5
+        )
+        st.success("Created new vector database.")
         return vectordb
     except Exception as e:
-        logging.error(f"An error occurred while creating/loading the vector database: {e}")
-        st.error(f"An error occurred while creating/loading the vector database: {e}")
+        logging.error(f"An error occurred while creating the vector database: {e}")
+        st.error(f"An error occurred while creating the vector database: {e}")
         return None
-
 @st.cache_resource
 def create_qa_chain(_vectordb):
     logging.info("Creating QA chain")
@@ -279,7 +271,7 @@ def main():
         if prompt_response_data:
             documents = create_documents(prompt_response_data)
             texts = split_documents(documents)
-            vector_db = create_vector_db(texts, Config.VECTOR_DB_DIR)
+            vector_db = create_vector_db(texts)
             st.session_state.qa_chain = create_qa_chain(vector_db)
             st.success("Data loaded successfully. You can now ask your investment questions.")
         else:
@@ -298,14 +290,12 @@ def main():
             logging.warning("QA Chain is not available")
             st.error("QA Chain is not available. Please load the data first.")
 
+
+
+
 if __name__ == "__main__":
     logging.info("Starting the Financial Advisor AI application")
     main()
-
-
-
-
-
 
 
 
