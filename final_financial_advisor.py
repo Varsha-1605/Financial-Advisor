@@ -1,23 +1,3 @@
-# import pandas as pd
-# import os
-# import re
-# import shutil
-# from tqdm import tqdm
-# from langchain.docstore.document import Document
-# from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_community.vectorstores import Chroma
-# from langchain_openai import OpenAIEmbeddings, OpenAI
-# from langchain.chains import RetrievalQA
-# import streamlit as st
-# import plotly.graph_objects as go
-# from chromadb.config import Settings
-# import json
-# import tempfile
-
-
-
-
-
 import pandas as pd
 import os
 import logging
