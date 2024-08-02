@@ -17,6 +17,8 @@ import json
 
 # # Load environment variables
 # load_dotenv()
+os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
+
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
