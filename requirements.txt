@@ -53,4 +53,4 @@ tzlocal
 urllib3
 validators
 watchdog
-protobuf==3.20.1
+protobuf==3.20.3
