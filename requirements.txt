@@ -290,3 +290,4 @@ yarl==1.9.4
 yfinance==0.2.41
 zipp==3.19.2
 zstandard==0.23.0
+pysqlite3-binary
