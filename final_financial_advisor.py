@@ -1,9 +1,3 @@
-__import__('pysqlite3')
-import sys
-sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
-
-
-
 import pandas as pd
 import os
 import re
@@ -11,8 +5,7 @@ import shutil
 from tqdm import tqdm
 from langchain.docstore.document import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-# from langchain_community.vectorstores import Chroma
-from langchain_chroma import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain_openai import OpenAIEmbeddings, OpenAI
 from langchain.chains import RetrievalQA
 import streamlit as st
@@ -21,38 +14,17 @@ from chromadb.config import Settings
 import json
 import tempfile
 
-
 st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
-# from dotenv import load_dotenv
 
-# # Load environment variables
-# load_dotenv()
-os.environ['PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION'] = 'python'
-
+# Load environment variables
 openapi_key = st.secrets["OPENAI_API_KEY"]
 if openapi_key is None:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 os.environ['OPENAI_API_KEY'] = openapi_key
 
-# st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
-
-
-
-
-# Fetch API key from environment variable
-# openapi_key = os.getenv('OPENAI_API_KEY')
-# if openapi_key is None:
-#     raise ValueError("OPENAI_API_KEY environment variable is not set")
-# os.environ['OPENAI_API_KEY'] = openapi_key
-
-
-
-# Configuration
 class Config:
     DATA_FILE = 'Finance_data.csv'
     VECTOR_DB_DIR = tempfile.mkdtemp()
-    
-    # st.sidebar.markdown(f""" <h1 style="font-size:30px; color:#FFD700;">Quick Guide 🚀 </h1>""", unsafe_allow_html=True)
     HOW_TO_USE = """
     1. 📊 Click 'Load Data' to initialize the AI.
     2. 📝 Complete the risk assessment questionnaire.
@@ -62,9 +34,7 @@ class Config:
     6. 📈 Review the advice and investment allocation chart.
     7. 🔄 Use the portfolio rebalancing tool if needed.
     8. 📚 Explore educational resources for more information.
-
     """
-    
     SAMPLE_QUESTIONS = {
         "Retirement 👴👵": [
             "What's a good investment strategy for retirement in my 30s?",
@@ -87,7 +57,6 @@ class Config:
             "How can I minimize my tax liability while maximizing returns?"
         ]
     }
-    
     RISK_ASSESSMENT_QUESTIONS = [
         "On a scale of 1 to 5, how comfortable are you with taking risks in your investments? 😰😐😎",
         "How would you react if your investment lost 10% of its value in a month? 😱😕🤔",
@@ -95,8 +64,6 @@ class Config:
         "What is your primary goal for investing? 🎯💸"
     ]
 
-
-# Data Processing Functions
 @st.cache_data
 def load_and_process_data(file_path):
     try:
@@ -143,21 +110,17 @@ def split_documents(documents, chunk_size=1000, chunk_overlap=200):
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     return text_splitter.split_documents(documents)
 
-
-
 @st.cache_resource
 def create_vector_db(_texts, persist_directory):
     openai_embeddings = OpenAIEmbeddings()
     try:
         if os.path.exists(persist_directory) and os.listdir(persist_directory):
-            # Load existing vector store
             vectordb = Chroma(persist_directory=persist_directory, embedding_function=openai_embeddings)
             st.info("Loaded existing vector database.")
         else:
-            # Create new vector store
             if os.path.exists(persist_directory):
-                shutil.rmtree(persist_directory)  # Remove directory if it exists but is empty
-            os.makedirs(persist_directory, exist_ok=True)  # Create directory
+                shutil.rmtree(persist_directory)
+            os.makedirs(persist_directory, exist_ok=True)
             vectordb = Chroma.from_documents(
                 documents=_texts,
                 embedding=openai_embeddings,
@@ -168,11 +131,6 @@ def create_vector_db(_texts, persist_directory):
     except Exception as e:
         st.error(f"An error occurred while creating/loading the vector database: {e}")
         return None
-
-
-
-
-
 
 @st.cache_resource
 def create_qa_chain(_vectordb):
@@ -185,7 +143,6 @@ def create_qa_chain(_vectordb):
     )
     return qa_chain
 
-# User Profile Functions
 def save_user_profile(profile):
     try:
         with open('user_profile.json', 'w') as f:
@@ -203,276 +160,95 @@ def load_user_profile():
         st.error(f"An error occurred while loading the user profile: {e}")
         return None
 
-# Investment Logic Functions
 def calculate_risk_score(answers):
-    score = sum(answers)
-    if score <= 7:
-        return "Low 🟢"
-    elif score <= 14:
-        return "Moderate 🟡"
-    else:
-        return "High 🔴"
+    if len(answers) != 4:
+        raise ValueError("Expected 4 answers for the risk assessment")
+    try:
+        scores = list(map(int, answers))
+        return sum(scores) / len(scores)
+    except ValueError:
+        raise ValueError("Invalid input. Please provide numeric answers")
 
-def extract_allocation(result):
-    lines = result.split('\n')
-    allocation = {}
-    for line in lines:
-        if ':' in line:
-            key, value = line.split(':', 1)
-            key = key.strip().lower()
-            value = value.strip()
-            if any(asset in key for asset in ['mutual funds', 'equity market', 'debentures', 'government bonds', 'fixed deposits', 'ppf', 'gold']):
-                try:
-                    allocation[key] = float(value.strip('%'))
-                except ValueError:
-                    pass
-    return allocation
+def get_investment_advice(profile, question, qa_chain):
+    prompt = f"I'm a {profile['age']}-year-old {profile['gender']} looking to invest in {profile['Avenue']} " \
+             f"for {profile['Purpose']} over the next {profile['Duration']}. " \
+             f"My risk assessment score is {profile['risk_score']}. {question}"
+    response = qa_chain({"query": prompt})
+    return response["result"]
 
-def suggest_rebalancing(current_portfolio, target_allocation):
-    suggestions = []
-    for asset, current_pct in current_portfolio.items():
-        target_pct = target_allocation.get(asset, 0)
-        diff = target_pct - current_pct
-        if abs(diff) > 5:  # 5% threshold for rebalancing
-            action = "increase" if diff > 0 else "decrease"
-            suggestions.append(f"{action} {asset} by {abs(diff):.1f}%")
-    return suggestions
-
-
-
-# Visualization Function
-def plot_allocation(allocation):
-    colors = ['#FF9999', '#66B2FF', '#99FF99', '#FFCC99', '#FF99CC', '#99CCFF', '#CCFF99']
-    labels = list(allocation.keys())
-    values = list(allocation.values())
-    
-    fig = go.Figure(data=[go.Pie(labels=labels, values=values, marker=dict(colors=colors))])
-    fig.update_layout(
-        title='Investment Allocation 📊',
-        font=dict(size=14),
-        legend=dict(font=dict(size=12)),
-        height=500
-    )
-    return fig
-
-
-# Cache and Storage Management
-def manage_cache_and_storage():
-    if st.button("Clear Cache and Remove Vector Store"):
-        try:
-            # Clear Streamlit cache
-            st.cache_data.clear()
-            st.cache_resource.clear()
-            # Remove vector store directory
-            shutil.rmtree(Config.VECTOR_DB_DIR, ignore_errors=True)
-            st.success("Cache cleared and vector store removed successfully.")
-            # Remove the qa_chain from session state
-            if 'qa_chain' in st.session_state:
-                del st.session_state.qa_chain
-        except Exception as e:
-            st.error(f"An error occurred while clearing cache and removing vector store: {e}")
-
-
-
-# Main Application
 def main():
-    # st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
+    st.title("Financial Advisor AI 💼")
     
-    st.markdown("""
-    <style>
-    .big-font {
-        font-size:50px !important;
-        font-weight: bold;
-        color: #1E88E5;
-        text-align: center;
-    }
-    .subheader {
-        font-size:40px;
-        font-weight: bold;
-        color: #43A047;
-    }
-    .sidebar .sidebar-content {
-        background-image: linear-gradient(#4CAF50,#2E7D32);
-    }
-    .Widget>label {
-        color: #FFFFFF;
-        font-weight: bold;
-    }
-    .stButton>button {
-        color: #FFFFFF;
-        background-color: #1E88E5;
-        border-radius: 20px;
-    }
-    .stTextInput>div>div>input {
-        border-radius: 10px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-
-    # st.markdown('<p class="big-font">Financial Advisor AI 💼</p>', unsafe_allow_html=True)
-
-    st.markdown(
-    """
-    <style>
-    .box {
-        background-color: #FFD700;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        margin: 20px 0;
-        text-align: center;
-    }
-    .big-font {
-        font-size: 50px;
-        font-weight:900 ;
-        color: #002F6C;
-        margin-top:2px;
-        margin-bottom:2px;
-    }
-    </style>
-    <div class="box">
-        <h1 class="big-font">AI Financial Advisor 💼</h1>
-    </div>
-    """,
-    unsafe_allow_html=True
-)
-
+    if 'qa_chain' not in st.session_state:
+        st.session_state.qa_chain = None
     
-    sidebar_content()
-    
-    # Add cache and storage management
-    manage_cache_and_storage()
-    
-    if st.button("🔄 Load Data"):
-        load_data()
-    
-    if 'qa_chain' in st.session_state:
-        qa_chain = st.session_state.qa_chain
-        
-        risk_score = risk_assessment()
-        age, gender, purpose = user_profile()
-        investment_query(qa_chain, age, gender, purpose, risk_score)
-        portfolio_rebalancing()
+    if 'profile' not in st.session_state:
+        st.session_state.profile = {
+            "age": "",
+            "gender": "Male",
+            "Avenue": "",
+            "Purpose": "",
+            "Duration": "",
+            "risk_score": 0
+        }
 
-def sidebar_content():
-    st.sidebar.markdown('<hr style="border:1px solid #ff4b4b; margin-top:2px; margin-bottom:2px;">', unsafe_allow_html=True)
-    st.sidebar.markdown('<p class="subheader" >User Guide 🧭</p>', unsafe_allow_html=True)
-    st.sidebar.markdown('<hr style="border:1px solid #ff4b4b;margin-top:2px;">', unsafe_allow_html=True)
-    
-    # st.sidebar.markdown("### How to Use 📚")
-    st.sidebar.markdown(f""" <h1 style="font-size:30px; color:#FFD700;">Quick Guide 🚀 </h1>""", unsafe_allow_html=True)
-    st.sidebar.write(Config.HOW_TO_USE)
-    
-    st.sidebar.markdown('<hr style="border:1px solid #ff4b4b;">', unsafe_allow_html=True)
-    # st.sidebar.markdown("### Sample Questions 💡")
-    st.sidebar.markdown(f""" <h1 style="font-size:30px; color:#FFD700;">Sample Questions 💡 </h1>""", unsafe_allow_html=True)
-    category = st.sidebar.selectbox("Choose a category:", list(Config.SAMPLE_QUESTIONS.keys()))
-    selected_question = st.sidebar.selectbox("Select a sample question:", [""] + Config.SAMPLE_QUESTIONS[category])
-    if selected_question:
-        st.session_state.query = selected_question
-    
-    # Feedback Section
-    st.sidebar.markdown('<hr style="border:1px solid #ff4b4b;">', unsafe_allow_html=True)
-    st.sidebar.markdown(f"""
-    <h1 style="font-size:30px; color:#FFD700;">Feedback 📝</h1>
-    <p>We value your feedback! 😊</p>
-        """, unsafe_allow_html=True)
-    feedback = st.sidebar.slider("How helpful is this tool? 😞😐😊", 1, 5, 3)
-    feedback_text = st.sidebar.text_area("Additional feedback:")
-    if st.sidebar.button("Submit Feedback"):
-        st.sidebar.success("Thank you for your feedback! 👍")
+    st.sidebar.markdown("## Risk Assessment")
+    user_answers = []
+    for i, question in enumerate(Config.RISK_ASSESSMENT_QUESTIONS, 1):
+        answer = st.sidebar.radio(question, ['1', '2', '3', '4', '5'], key=f'question_{i}')
+        user_answers.append(answer)
 
-
-
-   
-def load_data():
-    with st.spinner("Loading data... Please wait! 🕒"):
+    if st.sidebar.button("Submit Risk Assessment"):
         try:
-            data = load_and_process_data(Config.DATA_FILE)
-            documents = create_documents(data)
+            risk_score = calculate_risk_score(user_answers)
+            st.session_state.profile["risk_score"] = risk_score
+            st.sidebar.success(f"Your risk score: {risk_score:.2f}")
+        except ValueError as e:
+            st.sidebar.error(str(e))
+
+    st.sidebar.markdown("## User Profile")
+    st.session_state.profile["age"] = st.sidebar.text_input("Age", value=st.session_state.profile["age"])
+    st.session_state.profile["gender"] = st.sidebar.radio("Gender", ["Male", "Female", "Other"], index=["Male", "Female", "Other"].index(st.session_state.profile["gender"]))
+    st.session_state.profile["Avenue"] = st.sidebar.text_input("Investment Avenue", value=st.session_state.profile["Avenue"])
+    st.session_state.profile["Purpose"] = st.sidebar.text_input("Investment Purpose", value=st.session_state.profile["Purpose"])
+    st.session_state.profile["Duration"] = st.sidebar.text_input("Investment Duration", value=st.session_state.profile["Duration"])
+
+    if st.sidebar.button("Save Profile"):
+        save_user_profile(st.session_state.profile)
+        st.sidebar.success("Profile saved successfully")
+
+    if st.sidebar.button("Load Profile"):
+        loaded_profile = load_user_profile()
+        if loaded_profile:
+            st.session_state.profile.update(loaded_profile)
+            st.sidebar.success("Profile loaded successfully")
+        else:
+            st.sidebar.error("No profile found")
+
+    st.markdown("## How to Use the App")
+    st.markdown(Config.HOW_TO_USE)
+
+    if st.button("Load Data"):
+        prompt_response_data = load_and_process_data(Config.DATA_FILE)
+        if prompt_response_data:
+            documents = create_documents(prompt_response_data)
             texts = split_documents(documents)
-            vector_db = create_vector_db(texts, persist_directory=Config.VECTOR_DB_DIR)
-            if vector_db:
-                qa_chain = create_qa_chain(vector_db)
-                st.session_state.qa_chain = qa_chain
-                st.success("Data loaded successfully! 🎉")
-            else:
-                st.error("Failed to create vector database. 😕")
-        except Exception as e:
-            st.error(f"An error occurred while loading data: {str(e)} 😟")
-
-def risk_assessment():
-    st.markdown('<p class="subheader">Risk Assessment Questionnaire 📋</p>', unsafe_allow_html=True)
-    questions = Config.RISK_ASSESSMENT_QUESTIONS
-    answers = [st.slider(q, 1, 5, 3) for q in questions]
-    
-    risk_score = calculate_risk_score(answers)
-    st.markdown(f"### Your risk tolerance is: {risk_score}")
-    return risk_score
-
-def user_profile():
-    st.markdown('<p class="subheader">User Profile 👤</p>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        age = st.number_input("Age 🎂", min_value=18, max_value=100, value=30)
-    with col2:
-        gender = st.selectbox("Gender 🚻", ["Male", "Female", "Other"])
-    with col3:
-        purpose = st.text_input("Investment Purpose 🎯", "Retirement")
-    return age, gender, purpose
-
-def investment_query(qa_chain, age, gender, purpose, risk_score):
-    st.markdown('<p class="subheader">Investment Query 💬</p>', unsafe_allow_html=True)
-    query = st.text_area("Enter your investment question here:")
-    
-    if st.button("🚀 Get Advice"):
-        if query:
-            with st.spinner("Analyzing your query... 🤔"):
-                try:
-                    result = qa_chain.invoke({"query": query})["result"]
-                    st.markdown("### AI Advice 🤖")
-                    st.write(result)
-                    
-                    allocation = extract_allocation(result)
-                    st.session_state.allocation = allocation
-                    # fig = plot_allocation(allocation)
-                    # st.plotly_chart(fig)
-                    
-                    user_profile = {
-                        "age": age,
-                        "gender": gender,
-                        "purpose": purpose,
-                        "risk_score": risk_score,
-                        "allocation": allocation
-                    }
-                    save_user_profile(user_profile)
-                    st.success("User profile saved! 💾")
-                except Exception as e:
-                    st.error(f"An error occurred while processing your query: {str(e)} 😟")
+            vector_db = create_vector_db(texts, Config.VECTOR_DB_DIR)
+            st.session_state.qa_chain = create_qa_chain(vector_db)
+            st.success("Data loaded successfully. You can now ask your investment questions.")
         else:
-            st.warning("Please enter an investment question. ❓")
+            st.error("Failed to load data")
 
-def portfolio_rebalancing():
-    st.markdown('<p class="subheader">Portfolio Rebalancing 🔄</p>', unsafe_allow_html=True)
-    if st.button("Suggest Rebalancing"):
-        user_profile = load_user_profile()
-        if user_profile and 'allocation' in st.session_state:
-            current_portfolio = user_profile.get("allocation", {})
-            target_allocation = st.session_state.allocation
-            suggestions = suggest_rebalancing(current_portfolio, target_allocation)
-            if suggestions:
-                st.markdown("### Suggestions for rebalancing your portfolio:")
-                for suggestion in suggestions:
-                    st.markdown(f"- {suggestion}")
-            else:
-                st.success("Your portfolio is already well-balanced! 👍")
+    st.markdown("## Investment Advice")
+    question = st.text_area("Enter your investment question here")
+
+    if st.button("Get Advice"):
+        if st.session_state.qa_chain:
+            advice = get_investment_advice(st.session_state.profile, question, st.session_state.qa_chain)
+            st.markdown("### Your Investment Advice")
+            st.write(advice)
         else:
-            st.warning("No user profile found. Please get advice first. ⚠️")
+            st.error("QA Chain is not available. Please load the data first.")
 
 if __name__ == "__main__":
     main()
-
-
-
-
