@@ -1,24 +1,47 @@
+# import pandas as pd
+# import os
+# import re
+# import shutil
+# from tqdm import tqdm
+# from langchain.docstore.document import Document
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain_community.vectorstores import Chroma
+# from langchain_openai import OpenAIEmbeddings, OpenAI
+# from langchain.chains import RetrievalQA
+# import streamlit as st
+# import plotly.graph_objects as go
+# from chromadb.config import Settings
+# import json
+# import tempfile
+
+
+
 import pandas as pd
 import os
 import re
 import shutil
+import logging
 from tqdm import tqdm
-from langchain.docstore.document import Document
+from langchain.schema import Document
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_openai import OpenAIEmbeddings, OpenAI
+from langchain.vectorstores import Chroma
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import streamlit as st
 import plotly.graph_objects as go
-from chromadb.config import Settings
 import json
 import tempfile
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
 
 # Load environment variables
 openapi_key = st.secrets["OPENAI_API_KEY"]
 if openapi_key is None:
+    logging.error("OPENAI_API_KEY environment variable is not set")
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 os.environ['OPENAI_API_KEY'] = openapi_key
 
@@ -67,12 +90,17 @@ class Config:
 @st.cache_data
 def load_and_process_data(file_path):
     try:
+        logging.info(f"Loading data from {file_path}")
         data = pd.read_csv(file_path)
-        return [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
+        processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
+        logging.info(f"Processed {len(processed_data)} entries")
+        return processed_data
     except FileNotFoundError:
+        logging.error(f"File not found: {file_path}")
         st.error(f"File not found: {file_path}")
         return []
     except Exception as e:
+        logging.error(f"An error occurred while loading data: {e}")
         st.error(f"An error occurred while loading data: {e}")
         return []
 
@@ -104,20 +132,27 @@ def create_prompt_response(entry):
     return {"prompt": prompt, "response": response}
 
 def create_documents(prompt_response_data):
+    logging.info(f"Creating {len(prompt_response_data)} documents")
     return [Document(page_content=f"Prompt: {entry['prompt']}\nResponse: {entry['response']}") for entry in prompt_response_data]
 
 def split_documents(documents, chunk_size=1000, chunk_overlap=200):
+    logging.info(f"Splitting {len(documents)} documents")
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
-    return text_splitter.split_documents(documents)
+    split_docs = text_splitter.split_documents(documents)
+    logging.info(f"Created {len(split_docs)} split documents")
+    return split_docs
 
 @st.cache_resource
 def create_vector_db(_texts, persist_directory):
+    logging.info("Creating vector database")
     openai_embeddings = OpenAIEmbeddings()
     try:
         if os.path.exists(persist_directory) and os.listdir(persist_directory):
+            logging.info("Loading existing vector database")
             vectordb = Chroma(persist_directory=persist_directory, embedding_function=openai_embeddings)
             st.info("Loaded existing vector database.")
         else:
+            logging.info("Creating new vector database")
             if os.path.exists(persist_directory):
                 shutil.rmtree(persist_directory)
             os.makedirs(persist_directory, exist_ok=True)
@@ -129,11 +164,13 @@ def create_vector_db(_texts, persist_directory):
             st.success("Created new vector database.")
         return vectordb
     except Exception as e:
+        logging.error(f"An error occurred while creating/loading the vector database: {e}")
         st.error(f"An error occurred while creating/loading the vector database: {e}")
         return None
 
 @st.cache_resource
 def create_qa_chain(_vectordb):
+    logging.info("Creating QA chain")
     llm = OpenAI(temperature=0)
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
@@ -145,22 +182,28 @@ def create_qa_chain(_vectordb):
 
 def save_user_profile(profile):
     try:
+        logging.info("Saving user profile")
         with open('user_profile.json', 'w') as f:
             json.dump(profile, f)
     except Exception as e:
+        logging.error(f"An error occurred while saving the user profile: {e}")
         st.error(f"An error occurred while saving the user profile: {e}")
 
 def load_user_profile():
     try:
+        logging.info("Loading user profile")
         with open('user_profile.json', 'r') as f:
             return json.load(f)
     except FileNotFoundError:
+        logging.warning("No user profile found")
         return None
     except Exception as e:
+        logging.error(f"An error occurred while loading the user profile: {e}")
         st.error(f"An error occurred while loading the user profile: {e}")
         return None
 
 def calculate_risk_score(answers):
+    logging.info("Calculating risk score")
     if len(answers) != 4:
         raise ValueError("Expected 4 answers for the risk assessment")
     try:
@@ -170,6 +213,7 @@ def calculate_risk_score(answers):
         raise ValueError("Invalid input. Please provide numeric answers")
 
 def get_investment_advice(profile, question, qa_chain):
+    logging.info("Getting investment advice")
     prompt = f"I'm a {profile['age']}-year-old {profile['gender']} looking to invest in {profile['Avenue']} " \
              f"for {profile['Purpose']} over the next {profile['Duration']}. " \
              f"My risk assessment score is {profile['risk_score']}. {question}"
@@ -204,6 +248,7 @@ def main():
             st.session_state.profile["risk_score"] = risk_score
             st.sidebar.success(f"Your risk score: {risk_score:.2f}")
         except ValueError as e:
+            logging.error(f"Error in risk assessment: {e}")
             st.sidebar.error(str(e))
 
     st.sidebar.markdown("## User Profile")
@@ -229,6 +274,7 @@ def main():
     st.markdown(Config.HOW_TO_USE)
 
     if st.button("Load Data"):
+        logging.info("Loading data")
         prompt_response_data = load_and_process_data(Config.DATA_FILE)
         if prompt_response_data:
             documents = create_documents(prompt_response_data)
@@ -244,11 +290,25 @@ def main():
 
     if st.button("Get Advice"):
         if st.session_state.qa_chain:
+            logging.info("Getting investment advice")
             advice = get_investment_advice(st.session_state.profile, question, st.session_state.qa_chain)
             st.markdown("### Your Investment Advice")
             st.write(advice)
         else:
+            logging.warning("QA Chain is not available")
             st.error("QA Chain is not available. Please load the data first.")
 
 if __name__ == "__main__":
+    logging.info("Starting the Financial Advisor AI application")
     main()
+
+
+
+
+
+
+
+
+
+
+
