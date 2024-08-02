@@ -28,7 +28,6 @@ os.environ['OPENAI_API_KEY'] = openapi_key
 
 class Config:
     DATA_FILE = 'Finance_data.csv'
-    # VECTOR_DB_DIR = tempfile.mkdtemp()
     HOW_TO_USE = """
     1. 📊 Click 'Load Data' to initialize the AI.
     2. 📝 Complete the risk assessment questionnaire.
