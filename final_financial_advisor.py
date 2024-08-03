@@ -68,11 +68,13 @@ class Config:
     ]
 
 
-
-
+import pandas as pd
+import os
+import logging
+from tqdm import tqdm
 
 @st.cache_data
-def load_and_process_data(file_path, chunk_size=1000):
+def load_and_process_data(file_path):
     try:
         logging.info(f"Loading data from {file_path}")
         st.info(f"Attempting to load data from {file_path}")
@@ -83,14 +85,29 @@ def load_and_process_data(file_path, chunk_size=1000):
         if not os.access(file_path, os.R_OK):
             raise PermissionError(f"No read permission for the file {file_path}")
         
+        # Try different encodings
+        encodings = ['utf-8', 'latin-1', 'iso-8859-1']
+        data = None
+        
+        for encoding in encodings:
+            try:
+                data = pd.read_csv(file_path, encoding=encoding)
+                st.success(f"Successfully loaded data with {encoding} encoding.")
+                break
+            except UnicodeDecodeError:
+                continue
+        
+        if data is None:
+            raise ValueError("Unable to read the file with any of the attempted encodings.")
+        
         processed_data = []
-        for chunk in tqdm(pd.read_csv(file_path, chunksize=chunk_size), desc="Processing data"):
-            for _, row in chunk.iterrows():
-                processed_data.append(create_prompt_response(row))
+        for _, row in tqdm(data.iterrows(), total=data.shape[0], desc="Processing data"):
+            processed_data.append(create_prompt_response(row))
         
         logging.info(f"Processed {len(processed_data)} entries")
-        st.success(f"Successfully loaded and processed {len(processed_data)} entries")
+        st.success(f"Successfully processed {len(processed_data)} entries")
         return processed_data
+    
     except pd.errors.EmptyDataError:
         error_msg = f"The file {file_path} is empty"
         logging.error(error_msg)
@@ -103,6 +120,11 @@ def load_and_process_data(file_path, chunk_size=1000):
         st.error(f"Current working directory: {os.getcwd()}")
         st.error(f"File exists: {os.path.exists(file_path)}")
         st.error(f"File is readable: {os.access(file_path, os.R_OK)}")
+        return []
+    except ValueError as e:
+        error_msg = f"ValueError: {str(e)}"
+        logging.error(error_msg)
+        st.error(error_msg)
         return []
     except Exception as e:
         error_msg = f"An unexpected error occurred while loading data: {e}"
@@ -272,20 +294,23 @@ def main():
     st.markdown(Config.HOW_TO_USE)
 
     if st.button("Load Data"):
-        logging.info("Loading data")
-        prompt_response_data = load_and_process_data(Config.DATA_FILE)
-        if prompt_response_data:
-            documents = create_documents(prompt_response_data)
-            texts = split_documents(documents)
-            vector_db = create_vector_db(texts)
-            if vector_db:
-                st.session_state.qa_chain = create_qa_chain(vector_db)
-                st.success("Data loaded successfully. You can now ask your investment questions.")
-            else:
-                st.error("Failed to create vector database.")
+    logging.info("Loading data")
+    prompt_response_data = load_and_process_data(Config.DATA_FILE)
+    if prompt_response_data:
+        documents = create_documents(prompt_response_data)
+        texts = split_documents(documents)
+        vector_db = create_vector_db(texts)
+        if vector_db:
+            st.session_state.qa_chain = create_qa_chain(vector_db)
+            st.success("Data loaded successfully. You can now ask your investment questions.")
         else:
-            st.error("Failed to load data")
+            st.error("Failed to create vector database.")
+    else:
+        st.error("Failed to load data")
 
+
+
+    
     st.markdown("## Investment Advice")
     question = st.text_area("Enter your investment question here")
 
