@@ -12,19 +12,18 @@ from langchain.chains import RetrievalQA
 import streamlit as st
 import json
 
-
-
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 st.set_page_config(page_title="Financial Advisor AI 💼", page_icon="💼", layout="wide")
 
 # Load environment variables
-openapi_key = st.secrets["OPENAI_API_KEY"]
-if openapi_key is None:
-    logging.error("OPENAI_API_KEY environment variable is not set")
-    raise ValueError("OPENAI_API_KEY environment variable is not set")
-os.environ['OPENAI_API_KEY'] = openapi_key
+openapi_key = st.secrets.get("OPENAI_API_KEY")
+if not openapi_key:
+    logging.error("OPENAI_API_KEY is not set in Streamlit secrets")
+    st.error("OPENAI_API_KEY is not set. Please set it in your Streamlit secrets.")
+else:
+    os.environ['OPENAI_API_KEY'] = openapi_key
 
 class Config:
     DATA_FILE = 'Finance_data.csv'
@@ -67,47 +66,45 @@ class Config:
         "What is your primary goal for investing? 🎯💸"
     ]
 
-# @st.cache_data
-# def load_and_process_data(file_path):
-#     try:
-#         logging.info(f"Loading data from {file_path}")
-#         data = pd.read_csv(file_path)
-#         processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
-#         logging.info(f"Processed {len(processed_data)} entries")
-#         return processed_data
-#     except FileNotFoundError:
-#         logging.error(f"File not found: {file_path}")
-#         st.error(f"File not found: {file_path}")
-#         return []
-#     except Exception as e:
-#         logging.error(f"An error occurred while loading data: {e}")
-#         st.error(f"An error occurred while loading data: {e}")
-#         return []
-
-
-
 @st.cache_data
 def load_and_process_data(file_path):
     try:
         logging.info(f"Loading data from {file_path}")
+        st.info(f"Attempting to load data from {file_path}")
+        
+        # Check if file exists
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"The file {file_path} does not exist.")
+        
+        # Check file permissions
+        if not os.access(file_path, os.R_OK):
+            raise PermissionError(f"No read permission for the file {file_path}")
+        
+        # Try to read the file
         data = pd.read_csv(file_path)
+        
         processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
         logging.info(f"Processed {len(processed_data)} entries")
+        st.success(f"Successfully loaded and processed {len(processed_data)} entries")
         return processed_data
     except pd.errors.EmptyDataError:
-        logging.error(f"The file {file_path} is empty")
-        st.error(f"The file {file_path} is empty")
+        error_msg = f"The file {file_path} is empty"
+        logging.error(error_msg)
+        st.error(error_msg)
         return []
     except IOError as e:
-        logging.error(f"IOError occurred while reading {file_path}: {e}")
-        st.error(f"IOError occurred while reading {file_path}: {e}")
+        error_msg = f"IOError occurred while reading {file_path}: {e}"
+        logging.error(error_msg)
+        st.error(error_msg)
+        st.error(f"Current working directory: {os.getcwd()}")
+        st.error(f"File exists: {os.path.exists(file_path)}")
+        st.error(f"File is readable: {os.access(file_path, os.R_OK)}")
         return []
     except Exception as e:
-        logging.error(f"An unexpected error occurred while loading data: {e}")
-        st.error(f"An unexpected error occurred while loading data: {e}")
+        error_msg = f"An unexpected error occurred while loading data: {e}"
+        logging.error(error_msg)
+        st.error(error_msg)
         return []
-
-
 
 def create_prompt_response(entry):
     prompt = (
@@ -164,6 +161,7 @@ def create_vector_db(_texts):
         logging.error(f"An error occurred while creating the vector database: {e}")
         st.error(f"An error occurred while creating the vector database: {e}")
         return None
+
 @st.cache_resource
 def create_qa_chain(_vectordb):
     logging.info("Creating QA chain")
@@ -276,8 +274,11 @@ def main():
             documents = create_documents(prompt_response_data)
             texts = split_documents(documents)
             vector_db = create_vector_db(texts)
-            st.session_state.qa_chain = create_qa_chain(vector_db)
-            st.success("Data loaded successfully. You can now ask your investment questions.")
+            if vector_db:
+                st.session_state.qa_chain = create_qa_chain(vector_db)
+                st.success("Data loaded successfully. You can now ask your investment questions.")
+            else:
+                st.error("Failed to create vector database.")
         else:
             st.error("Failed to load data")
 
@@ -294,15 +295,6 @@ def main():
             logging.warning("QA Chain is not available")
             st.error("QA Chain is not available. Please load the data first.")
 
-
-
-
 if __name__ == "__main__":
     logging.info("Starting the Financial Advisor AI application")
     main()
-
-
-
-
-
-
