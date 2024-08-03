@@ -326,7 +326,6 @@
 #     logging.info("Starting the Financial Advisor AI application")
 #     main()
 
-
 import pandas as pd
 import os
 import logging
@@ -647,7 +646,55 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&family=Inter:wght@300;400;600&display=swap');
+    
+    :root {
+        --primary-color: #00F5FF;
+        --secondary-color: #FF00E4;
+        --bg-color: #0A0E17;
+        --text-color: #E0E0E0;
+        --card-bg: #141C2F;
+    }
+    
+    /* ... (all your existing CSS rules) ... */
 
+    .glow-effect {
+        animation: glow 2s infinite;
+    }
+
+    /* Add the new link styles here */
+    a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    a:hover {
+        color: var(--secondary-color);
+    }
+
+    a::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        bottom: -2px;
+        left: 0;
+        background-color: var(--secondary-color);
+        visibility: hidden;
+        transform: scaleX(0);
+        transition: all 0.3s ease-in-out;
+    }
+
+    a:hover::after {
+        visibility: visible;
+        transform: scaleX(1);
+    }
+</style>
+""", unsafe_allow_html=True)
 
 
 
@@ -1010,22 +1057,31 @@ def main():
                 for q in questions:
                     st.write(f"• {q}")
         
-        st.markdown("### 📚 Educational Resources")
-        with st.expander("📘 Investment Basics"):
-            st.write("Learn the fundamental concepts of investing, including asset classes, risk vs. return, and diversification.")
-        with st.expander("🛡️ Risk Management Strategies"):
-            st.write("Discover techniques to manage and mitigate investment risks, including portfolio diversification and hedging strategies.")
-        with st.expander("💰 Tax-Efficient Investing"):
-            st.write("Explore strategies to minimize your tax liability while maximizing your investment returns.")
-        with st.expander("📅 Retirement Planning"):
-            st.write("Learn how to plan and save effectively for your retirement, including information on 401(k)s, IRAs, and other retirement accounts.")
-        with st.expander("📈 Market Analysis Techniques"):
-            st.write("Discover various methods for analyzing financial markets, including fundamental and technical analysis.")
-
+        with tab3:
+            st.markdown("## 🎓 Financial Education Hub")
+            st.markdown("### 📚 Educational Resources")
+            with st.expander("📘 Investment Basics"):
+                st.write("Learn the fundamental concepts of investing, including asset classes, risk vs. return, and diversification.")
+                st.markdown('[Learn more about Investment Basics](https://www.investopedia.com/terms/i/investment.asp)')
+            
+            with st.expander("🛡️ Risk Management Strategies"):
+                st.write("Discover techniques to manage and mitigate investment risks, including portfolio diversification and hedging strategies.")
+                st.markdown('[Learn more about Risk Management Strategies](https://www.sailpoint.com/identity-library/what-is-risk-management-strategy/)')
+            
+            with st.expander("💰 Tax-Efficient Investing"):
+                st.write("Explore strategies to minimize your tax liability while maximizing your investment returns.")
+                st.markdown('[Learn more about Tax-Efficient Investing](https://www.financialexpress.com/money/income-tax-tax-efficient-investment-planning-a-practical-guide-to-wealth-building-for-indian-investors-3384958/)')
+            
+            with st.expander("📅 Retirement Planning"):
+                st.write("Learn how to plan and save effectively for your retirement, including information on 401(k)s, IRAs, and other retirement accounts.")
+                st.markdown('[Learn more about Retirement Planning](https://www.investopedia.com/terms/r/retirement-planning.asp)')
+            
+            with st.expander("📈 Market Analysis Techniques"):
+                st.write("Discover various methods for analyzing financial markets, including fundamental and technical analysis.")
+                st.markdown('[Learn more about Market Analysis Techniques](https://nwokediothniel.medium.com/understanding-market-analysis-techniques-a-comprehensive-guide-928a124a2e7b)')
 if __name__ == "__main__":
     logging.info("Starting FinGenius: Your AI Financial Advisor")
     main()
-
 
 
 
