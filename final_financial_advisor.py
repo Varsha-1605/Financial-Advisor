@@ -13,6 +13,7 @@ import streamlit as st
 import json
 import csv
 
+
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -68,13 +69,10 @@ class Config:
     ]
 
 
-import pandas as pd
-import os
-import logging
-from tqdm import tqdm
+
 
 @st.cache_data
-def load_and_process_data(file_path):
+def load_and_process_data(file_path, chunk_size=1000):
     try:
         logging.info(f"Loading data from {file_path}")
         st.info(f"Attempting to load data from {file_path}")
@@ -87,26 +85,24 @@ def load_and_process_data(file_path):
         
         # Try different encodings
         encodings = ['utf-8', 'latin-1', 'iso-8859-1']
-        data = None
         
         for encoding in encodings:
             try:
-                data = pd.read_csv(file_path, encoding=encoding)
-                st.success(f"Successfully loaded data with {encoding} encoding.")
-                break
+                processed_data = []
+                for chunk in pd.read_csv(file_path, encoding=encoding, chunksize=chunk_size):
+                    for _, row in chunk.iterrows():
+                        processed_data.append(create_prompt_response(row))
+                    st.text(f"Processed {len(processed_data)} entries so far...")
+                
+                st.success(f"Successfully loaded and processed {len(processed_data)} entries with {encoding} encoding.")
+                return processed_data
             except UnicodeDecodeError:
                 continue
+            except Exception as e:
+                st.error(f"Error processing data with {encoding} encoding: {str(e)}")
+                continue
         
-        if data is None:
-            raise ValueError("Unable to read the file with any of the attempted encodings.")
-        
-        processed_data = []
-        for _, row in tqdm(data.iterrows(), total=data.shape[0], desc="Processing data"):
-            processed_data.append(create_prompt_response(row))
-        
-        logging.info(f"Processed {len(processed_data)} entries")
-        st.success(f"Successfully processed {len(processed_data)} entries")
-        return processed_data
+        raise ValueError("Unable to read the file with any of the attempted encodings.")
     
     except pd.errors.EmptyDataError:
         error_msg = f"The file {file_path} is empty"
@@ -158,6 +154,9 @@ def create_prompt_response(entry):
         f"Source of information: {entry['Source']}\n"
     )
     return {"prompt": prompt, "response": response}
+
+
+
 
 def create_documents(prompt_response_data):
     logging.info(f"Creating {len(prompt_response_data)} documents")
@@ -307,7 +306,6 @@ def main():
                 st.error("Failed to create vector database.")
         else:
             st.error("Failed to load data")
-
 
 
     
