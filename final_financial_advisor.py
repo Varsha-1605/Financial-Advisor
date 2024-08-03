@@ -67,6 +67,25 @@ class Config:
         "What is your primary goal for investing? 🎯💸"
     ]
 
+# @st.cache_data
+# def load_and_process_data(file_path):
+#     try:
+#         logging.info(f"Loading data from {file_path}")
+#         data = pd.read_csv(file_path)
+#         processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
+#         logging.info(f"Processed {len(processed_data)} entries")
+#         return processed_data
+#     except FileNotFoundError:
+#         logging.error(f"File not found: {file_path}")
+#         st.error(f"File not found: {file_path}")
+#         return []
+#     except Exception as e:
+#         logging.error(f"An error occurred while loading data: {e}")
+#         st.error(f"An error occurred while loading data: {e}")
+#         return []
+
+
+
 @st.cache_data
 def load_and_process_data(file_path):
     try:
@@ -75,14 +94,20 @@ def load_and_process_data(file_path):
         processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
         logging.info(f"Processed {len(processed_data)} entries")
         return processed_data
-    except FileNotFoundError:
-        logging.error(f"File not found: {file_path}")
-        st.error(f"File not found: {file_path}")
+    except pd.errors.EmptyDataError:
+        logging.error(f"The file {file_path} is empty")
+        st.error(f"The file {file_path} is empty")
+        return []
+    except IOError as e:
+        logging.error(f"IOError occurred while reading {file_path}: {e}")
+        st.error(f"IOError occurred while reading {file_path}: {e}")
         return []
     except Exception as e:
-        logging.error(f"An error occurred while loading data: {e}")
-        st.error(f"An error occurred while loading data: {e}")
+        logging.error(f"An unexpected error occurred while loading data: {e}")
+        st.error(f"An unexpected error occurred while loading data: {e}")
         return []
+
+
 
 def create_prompt_response(entry):
     prompt = (
