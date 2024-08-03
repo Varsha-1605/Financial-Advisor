@@ -294,19 +294,19 @@ def main():
     st.markdown(Config.HOW_TO_USE)
 
     if st.button("Load Data"):
-    logging.info("Loading data")
-    prompt_response_data = load_and_process_data(Config.DATA_FILE)
-    if prompt_response_data:
-        documents = create_documents(prompt_response_data)
-        texts = split_documents(documents)
-        vector_db = create_vector_db(texts)
-        if vector_db:
-            st.session_state.qa_chain = create_qa_chain(vector_db)
-            st.success("Data loaded successfully. You can now ask your investment questions.")
+        logging.info("Loading data")
+        prompt_response_data = load_and_process_data(Config.DATA_FILE)
+        if prompt_response_data:
+            documents = create_documents(prompt_response_data)
+            texts = split_documents(documents)
+            vector_db = create_vector_db(texts)
+            if vector_db:
+                st.session_state.qa_chain = create_qa_chain(vector_db)
+                st.success("Data loaded successfully. You can now ask your investment questions.")
+            else:
+                st.error("Failed to create vector database.")
         else:
-            st.error("Failed to create vector database.")
-    else:
-        st.error("Failed to load data")
+            st.error("Failed to load data")
 
 
 
