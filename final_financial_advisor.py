@@ -69,8 +69,10 @@ class Config:
 
 
 
+
+
 @st.cache_data
-def load_and_process_data(file_path):
+def load_and_process_data(file_path, chunk_size=1000):
     try:
         logging.info(f"Loading data from {file_path}")
         st.info(f"Attempting to load data from {file_path}")
@@ -82,16 +84,15 @@ def load_and_process_data(file_path):
             raise PermissionError(f"No read permission for the file {file_path}")
         
         processed_data = []
-        with open(file_path, 'r', newline='') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in tqdm(reader, desc="Processing data"):
+        for chunk in tqdm(pd.read_csv(file_path, chunksize=chunk_size), desc="Processing data"):
+            for _, row in chunk.iterrows():
                 processed_data.append(create_prompt_response(row))
         
         logging.info(f"Processed {len(processed_data)} entries")
         st.success(f"Successfully loaded and processed {len(processed_data)} entries")
         return processed_data
-    except csv.Error as e:
-        error_msg = f"CSV Error occurred while reading {file_path}: {e}"
+    except pd.errors.EmptyDataError:
+        error_msg = f"The file {file_path} is empty"
         logging.error(error_msg)
         st.error(error_msg)
         return []
