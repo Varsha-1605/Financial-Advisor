@@ -11,6 +11,7 @@ from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import streamlit as st
 import json
+import csv
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -66,29 +67,31 @@ class Config:
         "What is your primary goal for investing? 🎯💸"
     ]
 
+
+
 @st.cache_data
 def load_and_process_data(file_path):
     try:
         logging.info(f"Loading data from {file_path}")
         st.info(f"Attempting to load data from {file_path}")
         
-        # Check if file exists
         if not os.path.exists(file_path):
             raise FileNotFoundError(f"The file {file_path} does not exist.")
         
-        # Check file permissions
         if not os.access(file_path, os.R_OK):
             raise PermissionError(f"No read permission for the file {file_path}")
         
-        # Try to read the file
-        data = pd.read_csv(file_path)
+        processed_data = []
+        with open(file_path, 'r', newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in tqdm(reader, desc="Processing data"):
+                processed_data.append(create_prompt_response(row))
         
-        processed_data = [create_prompt_response(entry) for entry in tqdm(data.to_dict(orient='records'), desc="Processing data")]
         logging.info(f"Processed {len(processed_data)} entries")
         st.success(f"Successfully loaded and processed {len(processed_data)} entries")
         return processed_data
-    except pd.errors.EmptyDataError:
-        error_msg = f"The file {file_path} is empty"
+    except csv.Error as e:
+        error_msg = f"CSV Error occurred while reading {file_path}: {e}"
         logging.error(error_msg)
         st.error(error_msg)
         return []
