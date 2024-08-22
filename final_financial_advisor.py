@@ -2927,8 +2927,212 @@ with open("New_logo.png", "rb") as image_file:
 # Custom CSS (unchanged)
 st.markdown("""
 <style>
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&family=Inter:wght@300;400;600&display=swap');
+    
+    :root {
+        --primary-color: #00F5FF;
+        --secondary-color: #FF00E4;
+        --bg-color: #0A0E17;
+        --text-color: #E0E0E0;
+        --card-bg: #141C2F;
+    }
+    
+
+    
+    body {
+        color: var(--text-color);
+        background-color: var(--bg-color);
+        font-family: 'Inter', sans-serif;
+        background-image: 
+            radial-gradient(circle at 10% 20%, rgba(0, 245, 255, 0.1) 0%, transparent 20%),
+            radial-gradient(circle at 90% 80%, rgba(255, 0, 228, 0.1) 0%, transparent 20%);
+        background-attachment: fixed;
+    }
+    
+    .stApp {
+        background: transparent;
+    }
+    
+    h1, h2, h3 {
+        font-family: 'Exo 2', sans-serif;
+        color: var(--primary-color);
+        text-shadow: 0 0 10px rgba(0, 245, 255, 0.5);
+        letter-spacing: 1px;
+    }
+    
+    .stButton > button {
+        font-family: 'Exo 2', sans-serif;
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: var(--bg-color);
+        font-weight: 700;
+        border-radius: 30px;
+        border: none;
+        padding: 15px 30px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0, 245, 255, 0.4);
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-3px) scale(1.05);
+        box-shadow: 0 8px 20px rgba(255, 0, 228, 0.6);
+    }
+    
+    .stTextInput > div > div > input, 
+    .stSelectbox > div > div > select, 
+    .stTextArea > div > div > textarea {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-radius: 15px;
+        border: 2px solid var(--primary-color);
+        padding: 12px;
+        transition: all 0.3s ease;
+    }
+    
+    .stTextInput > div > div > input:focus, 
+    .stSelectbox > div > div > select:focus, 
+    .stTextArea > div > div > textarea:focus {
+        border-color: var(--secondary-color);
+        box-shadow: 0 0 15px rgba(255, 0, 228, 0.5);
+    }
+    
+    .stTab {
+        font-family: 'Exo 2', sans-serif;
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        font-weight: 600;
+        border-radius: 10px 10px 0 0;
+        border: 2px solid var(--primary-color);
+        border-bottom: none;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .stTab[aria-selected="true"] {
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: var(--bg-color);
+    }
+    
+    .stDataFrame {
+        font-family: 'Inter', sans-serif;
+        border: 2px solid var(--primary-color);
+        border-radius: 15px;
+        overflow: hidden;
+    }
+    
+    .stDataFrame thead {
+        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+        color: var(--bg-color);
+        font-family: 'Exo 2', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .stDataFrame tbody tr:nth-of-type(even) {
+        background-color: rgba(20, 28, 47, 0.7);
+    }
+    
+    .stAlert {
+        font-family: 'Inter', sans-serif;
+        background-color: var(--card-bg);
+        color: var(--text-color);
+        border-radius: 15px;
+        border: 2px solid var(--primary-color);
+    }
+    
+    .stProgress > div > div > div > div {
+        background-color: var(--primary-color);
+    }
+    
+    .stSlider > div > div > div > div {
+        color: var(--primary-color);
+        font-family: 'Exo 2', sans-serif;
+    }
+    
+    .css-1cpxqw2 {
+        background-color: var(--card-bg);
+        border-radius: 20px;
+        padding: 25px;
+        box-shadow: 0 10px 30px rgba(0, 245, 255, 0.2);
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        background-clip: padding-box;
+    }
+    
+    .css-1cpxqw2:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(255, 0, 228, 0.3);
+        border-color: var(--secondary-color);
+    }
+    
+    @keyframes glow {
+        0% { box-shadow: 0 0 5px var(--primary-color); }
+        50% { box-shadow: 0 0 20px var(--primary-color), 0 0 30px var(--secondary-color); }
+        100% { box-shadow: 0 0 5px var(--primary-color); }
+    }
+    
+    .glow-effect {
+        animation: glow 2s infinite;
+    }
 </style>
 """, unsafe_allow_html=True)
+st.markdown("""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&family=Inter:wght@300;400;600&display=swap');
+    
+    :root {
+        --primary-color: #00F5FF;
+        --secondary-color: #FF00E4;
+        --bg-color: #0A0E17;
+        --text-color: #E0E0E0;
+        --card-bg: #141C2F;
+    }
+    
+    /* ... (all your existing CSS rules) ... */
+
+    .glow-effect {
+        animation: glow 2s infinite;
+    }
+
+    /* Add the new link styles here */
+    a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+    a:hover {
+        color: var(--secondary-color);
+    }
+
+    a::after {
+        content: '';
+        position: absolute;
+        width: 100%;
+        height: 2px;
+        bottom: -2px;
+        left: 0;
+        background-color: var(--secondary-color);
+        visibility: hidden;
+        transform: scaleX(0);
+        transition: all 0.3s ease-in-out;
+    }
+
+    a:hover::after {
+        visibility: visible;
+        transform: scaleX(1);
+    }
+            
+
+</style>
+""", unsafe_allow_html=True)
+
+#
 
 # Add responsive header
 # Add responsive header
