@@ -3,30 +3,22 @@ import pandas as pd
 import os
 import logging
 from tqdm import tqdm
-# from langchain.schema import Document
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-# from langchain.vectorstores import SKLearnVectorStore
 from langchain_community.vectorstores import SKLearnVectorStore
 from sklearn.neighbors import NearestNeighbors
-# from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
-# from langchain.llms import OpenAI
-from langchain_openai import OpenAI
-# from langchain.chains import RetrievalQA
-# from langchain.chains import RetrievalQA
-# from langchain_community.chains import RetrievalQA
-from langchain.chains.retrieval_qa.base import RetrievalQA
-
+from langchain_openai import ChatOpenAI
 import json
 import plotly.graph_objects as go
 import plotly.express as px
 from faker import Faker
 import random
-from langchain_openai import ChatOpenAI
 from datetime import date, datetime, timedelta
 from dateutil.relativedelta import relativedelta
-from langchain.prompts import PromptTemplate
+from langchain.prompts import ChatPromptTemplate
+from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain.chains import create_retrieval_chain
 import time
 from openai import OpenAIError, APIConnectionError
 from requests.exceptions import ConnectionError
@@ -45,7 +37,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 # Encode image to base64
 with open("New_logo.png", "rb") as image_file:
     image_base64 = base64.b64encode(image_file.read()).decode("utf-8")
-# st.set_page_config(page_title="MarketWealth Genius: Your AI Financial Advisor", page_icon="💎", layout="wide")
 
 # Custom CSS (unchanged)
 st.markdown("""
@@ -59,8 +50,6 @@ st.markdown("""
         --text-color: #E0E0E0;
         --card-bg: #141C2F;
     }
-    
-
     
     body {
         color: var(--text-color);
@@ -103,125 +92,6 @@ st.markdown("""
         box-shadow: 0 8px 20px rgba(255, 0, 228, 0.6);
     }
     
-    .stTextInput > div > div > input, 
-    .stSelectbox > div > div > select, 
-    .stTextArea > div > div > textarea {
-        font-family: 'Inter', sans-serif;
-        background-color: var(--card-bg);
-        color: var(--text-color);
-        border-radius: 15px;
-        border: 2px solid var(--primary-color);
-        padding: 12px;
-        transition: all 0.3s ease;
-    }
-    
-    .stTextInput > div > div > input:focus, 
-    .stSelectbox > div > div > select:focus, 
-    .stTextArea > div > div > textarea:focus {
-        border-color: var(--secondary-color);
-        box-shadow: 0 0 15px rgba(255, 0, 228, 0.5);
-    }
-    
-    .stTab {
-        font-family: 'Exo 2', sans-serif;
-        background-color: var(--card-bg);
-        color: var(--text-color);
-        font-weight: 600;
-        border-radius: 10px 10px 0 0;
-        border: 2px solid var(--primary-color);
-        border-bottom: none;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .stTab[aria-selected="true"] {
-        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-        color: var(--bg-color);
-    }
-    
-    .stDataFrame {
-        font-family: 'Inter', sans-serif;
-        border: 2px solid var(--primary-color);
-        border-radius: 15px;
-        overflow: hidden;
-    }
-    
-    .stDataFrame thead {
-        background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-        color: var(--bg-color);
-        font-family: 'Exo 2', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    
-    .stDataFrame tbody tr:nth-of-type(even) {
-        background-color: rgba(20, 28, 47, 0.7);
-    }
-    
-    .stAlert {
-        font-family: 'Inter', sans-serif;
-        background-color: var(--card-bg);
-        color: var(--text-color);
-        border-radius: 15px;
-        border: 2px solid var(--primary-color);
-    }
-    
-    .stProgress > div > div > div > div {
-        background-color: var(--primary-color);
-    }
-    
-    .stSlider > div > div > div > div {
-        color: var(--primary-color);
-        font-family: 'Exo 2', sans-serif;
-    }
-    
-    .css-1cpxqw2 {
-        background-color: var(--card-bg);
-        border-radius: 20px;
-        padding: 25px;
-        box-shadow: 0 10px 30px rgba(0, 245, 255, 0.2);
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        background-clip: padding-box;
-    }
-    
-    .css-1cpxqw2:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(255, 0, 228, 0.3);
-        border-color: var(--secondary-color);
-    }
-    
-    @keyframes glow {
-        0% { box-shadow: 0 0 5px var(--primary-color); }
-        50% { box-shadow: 0 0 20px var(--primary-color), 0 0 30px var(--secondary-color); }
-        100% { box-shadow: 0 0 5px var(--primary-color); }
-    }
-    
-    .glow-effect {
-        animation: glow 2s infinite;
-    }
-</style>
-""", unsafe_allow_html=True)
-st.markdown("""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@300;400;700&family=Inter:wght@300;400;600&display=swap');
-    
-    :root {
-        --primary-color: #00F5FF;
-        --secondary-color: #FF00E4;
-        --bg-color: #0A0E17;
-        --text-color: #E0E0E0;
-        --card-bg: #141C2F;
-    }
-    
-    /* ... (all your existing CSS rules) ... */
-
-    .glow-effect {
-        animation: glow 2s infinite;
-    }
-
-    /* Add the new link styles here */
     a {
         color: var(--primary-color);
         text-decoration: none;
@@ -232,65 +102,12 @@ st.markdown("""
     a:hover {
         color: var(--secondary-color);
     }
-
-    a::after {
-        content: '';
-        position: absolute;
-        width: 100%;
-        height: 2px;
-        bottom: -2px;
-        left: 0;
-        background-color: var(--secondary-color);
-        visibility: hidden;
-        transform: scaleX(0);
-        transition: all 0.3s ease-in-out;
-    }
-
-    a:hover::after {
-        visibility: visible;
-        transform: scaleX(1);
-    }
-            
-
 </style>
 """, unsafe_allow_html=True)
 
-#
-
-# Add responsive header
 # Add responsive header
 st.markdown(
     f'''
-    <style>
-    .header {{
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        text-align: center;
-        padding: 20px;
-    }}
-    .header img {{
-        max-width: 100%;
-        height: auto;
-        width: 80px; /* Default width */
-    }}
-    @media (min-width: 600px) {{
-        .header h1 {{
-            font-size: 2.5em;
-        }}
-        .header img {{
-            width: 100px; /* Image size for wider screens */
-        }}
-    }}
-    @media (max-width: 599px) {{
-        .header h1 {{
-            font-size: 1.8em;
-        }}
-        .header img {{
-            width: 80px; /* Image size for smaller screens */
-        }}
-    }}
-    </style>
     <div class="header">
         <img src="data:image/png;base64,{image_base64}" />
         <h1>MarketWealth Genius: Your AI Financial Advisor</h1>
@@ -307,7 +124,7 @@ if not openai_api_key:
 else:
     os.environ['OPENAI_API_KEY'] = openai_api_key
 
-# Configuration class (unchanged)
+# Configuration class
 class Config:
     DATA_FILE = 'Finance_data.csv'
     HOW_TO_USE = """
@@ -358,11 +175,11 @@ class Config:
         "Bandhan Bank": 8.0
     }
     FD_SENIOR_CITIZEN_RATE_PREMIUM = 0.5
-# Data generation functions (unchanged)
+
+# Data generation functions
 fake = Faker()
 
 def generate_customer_data():
-    # ... (unchanged)
     age = random.randint(20, 70)
     gender = random.choice(['Male', 'Female'])
     marital_status = random.choice(['Single', 'Married', 'Divorced', 'Widowed'])
@@ -424,7 +241,6 @@ def generate_dataset(num_rows, months):
                 'Fixed_Deposits_Senior_Rate': Config.FD_RATES[random.choice(list(Config.FD_RATES.keys()))] + Config.FD_SENIOR_CITIZEN_RATE_PREMIUM if customer_data['Age'] >= 60 else Config.FD_RATES[random.choice(list(Config.FD_RATES.keys()))]
             }
 
-
             for product_type in ['Personal Loan', 'Credit Card', 'Mortgage']:
                 inq_in_last_3_months = any(inq['product_name'] == product_type for inq in last_3_months_inquiries)
                 customer_row[f'last_3months_{product_type.replace(" ", "_").lower()}_inq'] = inq_in_last_3_months
@@ -439,7 +255,6 @@ def generate_dataset(num_rows, months):
         st.error(f"🔴 Error generating dataset: {str(e)}")
         raise
 
-    
 @st.cache_data
 def load_and_process_data(file_path, chunk_size=1000):
     try:
@@ -458,10 +273,7 @@ def load_and_process_data(file_path, chunk_size=1000):
         return processed_data
     
     except Exception as e:
-        
         return []
-
-
 
 def create_prompt_response(entry):
     prompt = (
@@ -471,7 +283,6 @@ def create_prompt_response(entry):
     response = (
         f"Based on your preferences, here are your investment options:\n"
         f"- Fixed Deposits: {entry['Fixed_Deposits']} offers a rate of {entry['Fixed_Deposits_Rate']:.2f}% for regular customers and {entry['Fixed_Deposits_Senior_Rate']:.2f}% for senior citizens.\n"
-        # f"Based on your preferences, here are your investment options:\n"
         f"- Mutual Funds: {entry['Mutual_Funds']}\n"
         f"- Equity Market: {entry['Equity_Market']}\n"
         f"- Debentures: {entry['Debentures']}\n"
@@ -520,34 +331,36 @@ def create_vector_db(_texts):
         st.error(f"An error occurred while creating the vector database: {e}")
         return None
 
-# @st.cache_resource
-# def create_qa_chain(_vectordb):
-#     logging.info("Creating QA chain")
-#     llm = OpenAI(temperature=0)
-#     qa_chain = RetrievalQA.from_chain_type(
-#         llm=llm,
-#         chain_type="stuff",
-#         retriever=_vectordb.as_retriever(),
-#         return_source_documents=True
-#     )
-#     return qa_chain
-
-
 @st.cache_resource
 def create_qa_chain(_sklearn_store):
+    """Create a modern retrieval chain using the new LangChain API"""
     logging.info("Creating QA chain")
-    openai_llm = ChatOpenAI(api_key=openai_api_key, model="gpt-3.5-turbo")
-    prompt_template = PromptTemplate(
-        input_variables=["context"],
-        template="Based on the following customer data and financial information: {context}, suggest suitable banking lending products and investment strategies in the following format:\n\n1. Product/Strategy 1: Description\n2. Product/Strategy 2: Description\n3. Product/Strategy 3: Description\nProvide detailed recommendations."
-    )
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=openai_llm,
-        chain_type="stuff",
-        retriever=_sklearn_store.as_retriever(),
-        return_source_documents=True
-    )
-    return qa_chain
+    
+    # Initialize the LLM
+    llm = ChatOpenAI(api_key=openai_api_key, model="gpt-3.5-turbo", temperature=0)
+    
+    # Create the prompt template
+    prompt = ChatPromptTemplate.from_template("""
+    Based on the following customer data and financial information, suggest suitable banking lending products and investment strategies.
+    
+    Context: {context}
+    
+    Question: {input}
+    
+    Please provide detailed recommendations in the following format:
+    1. Product/Strategy 1: Description
+    2. Product/Strategy 2: Description
+    3. Product/Strategy 3: Description
+    
+    Answer:""")
+    
+    # Create the document chain
+    document_chain = create_stuff_documents_chain(llm, prompt)
+    
+    # Create the retrieval chain
+    retrieval_chain = create_retrieval_chain(_sklearn_store.as_retriever(), document_chain)
+    
+    return retrieval_chain
 
 def get_fd_rates():
     return Config.FD_RATES
@@ -584,17 +397,6 @@ def calculate_risk_score(answers):
         return sum(scores) / len(scores)
     except ValueError:
         raise ValueError("Invalid input. Please provide numeric answers")
-
-
-# Investment advice and visualization functions
-def get_investment_advice(profile, question, qa_chain):
-    logging.info("Getting investment advice")
-    prompt = f"I'm a {profile['age']}-year-old {profile['gender']} looking to invest in {profile['Avenue']} " \
-             f"for {profile['Purpose']} over the next {profile['Duration']}. " \
-             f"My risk assessment score is {profile['risk_score']}. {question}"
-    response = qa_chain({"query": prompt})
-    return response["result"]
-
 
 def create_risk_profile_chart(risk_score):
     fig = go.Figure(go.Indicator(
@@ -642,9 +444,6 @@ def create_investment_allocation_chart(advice):
     fig.update_traces(marker=dict(colors=['#3B82F6', '#10B981', '#F59E0B', '#E0E0E0']))
     return fig
 
-
-
-# New functions for the integrated model
 @st.cache_resource
 def setup_data_and_vectorstore():
     # Generate sample data
@@ -662,9 +461,6 @@ def setup_data_and_vectorstore():
     all_documents = documents + csv_documents
     texts = split_documents(all_documents)
     return create_vector_db(texts)
-
-
-# New functions for enhanced features
 
 @st.cache_data
 def fetch_stock_data(symbol, period="1y"):
@@ -701,38 +497,17 @@ def rebalance_portfolio(current_allocation, target_allocation):
     for asset, current_pct in current_allocation.items():
         target_pct = target_allocation.get(asset, 0)
         difference = target_pct - current_pct
-        if abs(difference) > 0.1:  # Only rebalance if difference is more than 0.1%
+        if abs(difference) > 0.1:
             action = "Buy" if difference > 0 else "Sell"
             rebalancing_actions[asset] = f"{action} {abs(difference):.2f}%"
     return rebalancing_actions
-
-
-def setup_retrieval_qa(sklearn_store):
-    try:
-        openai_llm = ChatOpenAI(api_key=openai_api_key, model="gpt-3.5-turbo")
-        prompt_template = PromptTemplate(
-            input_variables=["context"],
-            template="Based on the following customer data and financial information: {context}, suggest suitable banking lending products and investment strategies in the following format:\n\n1. Product/Strategy 1: Description\n2. Product/Strategy 2: Description\n3. Product/Strategy 3: Description\nProvide detailed recommendations."
-        )
-        retrieval_qa = RetrievalQA.from_chain_type(
-            llm=openai_llm,
-            chain_type="stuff",
-            retriever=sklearn_store.as_retriever()
-        )
-        return retrieval_qa
-    except Exception as e:
-        st.error(f"Error setting up retrieval QA: {str(e)}")
-        raise
-
 
 # Main application function
 def main():
     if 'active_tab' not in st.session_state:
         st.session_state.active_tab = "Home"
     
-    # st.markdown('<div class="stHeader glow-effect"><h1 style="text-align: center;">MarketWealth Genius: Your AI Financial Advisor 💎</h1></div>', unsafe_allow_html=True)
-    
-    tab1, tab2, tab3, tab4,  tab6 = st.tabs(["🏠 Home", "👤 Profile & Risk", "💡 Investment Advice", "📊 Financial Dashboard",  "🎓 Financial Education Hub"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🏠 Home", "👤 Profile & Risk", "💡 Investment Advice", "📊 Financial Dashboard", "🎓 Financial Education Hub"])
     
     with tab1:
         st.markdown("## Welcome to MarketWealth Genius! 🚀")
@@ -758,7 +533,6 @@ def main():
         st.markdown("### 🚀 Get Started")
         if st.button("Begin Your Investment Journey"):
             st.session_state.active_tab = "Profile & Risk"
-            # st.experimental_rerun()
     
     with tab2:
         st.markdown("## 👤 User Profile and Risk Assessment")
@@ -800,7 +574,6 @@ def main():
                     st.sidebar.error(str(e))
 
             st.sidebar.header("We value your feedback! 🌟")
-
             feedback = st.sidebar.text_area("📝 Leave Feedback", "Share your thoughts and suggestions here...")
             rating = st.sidebar.slider("📊 Rate Your Experience", 1, 5, 3)
             suggestions = st.sidebar.text_input("🗣️ Share Suggestions", "Any ideas for new features or improvements?")
@@ -823,9 +596,7 @@ def main():
                 else:
                     st.error("No profile found.")
 
-
         st.markdown("## 🔄 Portfolio Rebalancing")
-        
         st.markdown("### Current Portfolio Allocation")
         current_allocation = {}
         for asset in ['Stocks', 'Bonds', 'Real Estate', 'Cash']:
@@ -837,7 +608,6 @@ def main():
             target_allocation[asset] = st.number_input(f"Target {asset} allocation (%)", min_value=0, max_value=100, value=25, key=f"target_{asset}")
         
         if st.button("Rebalance Portfolio"):
-            # Check if allocations sum to 100%
             if sum(current_allocation.values()) != 100 or sum(target_allocation.values()) != 100:
                 st.error("Both current and target allocations must sum to 100%. Please adjust your inputs.")
             else:
@@ -846,14 +616,12 @@ def main():
                 for asset, action in rebalancing_actions.items():
                     st.write(f"- {asset}: {action}")
                 
-                # Create a bar chart to visualize the rebalancing
                 fig = go.Figure()
                 fig.add_trace(go.Bar(x=list(current_allocation.keys()), y=list(current_allocation.values()), name='Current Allocation'))
                 fig.add_trace(go.Bar(x=list(target_allocation.keys()), y=list(target_allocation.values()), name='Target Allocation'))
                 fig.update_layout(title='Portfolio Allocation: Current vs Target', barmode='group', xaxis_title='Asset Class', yaxis_title='Allocation (%)')
                 st.plotly_chart(fig, use_container_width=True)
                 
-                # Calculate the total portfolio value (assuming $100,000 for this example)
                 total_portfolio_value = 100000
                 st.markdown("### Rebalancing Transactions")
                 st.markdown(f"Assuming a total portfolio value of ${total_portfolio_value:,}")
@@ -866,47 +634,40 @@ def main():
                     else:
                         st.write(f"- {asset}: Sell ${amount:,.2f}")
     
+    with tab3:
+        st.markdown("## 💡 Investment Advice")
 
+        if 'qa_chain' not in st.session_state:
+            st.session_state.qa_chain = None
 
-
-        with tab3:
-            st.markdown("## 💡 Investment Advice")
-
-            if 'qa_chain' not in st.session_state:
-                st.session_state.qa_chain = None
-
-            if st.button("Load Financial Data"):
-                with st.spinner("Loading data..."):
-                    sklearn_store = setup_data_and_vectorstore()
-                    if sklearn_store:
-                        st.session_state.qa_chain = create_qa_chain(sklearn_store)
-                        st.success("Data loaded successfully. You can now ask for investment advice!")
-                    else:
-                        st.error("Failed to load data.")
-
-            question = st.text_area("What would you like to know about investing?", height=100)
-
-            if st.button("Get Personalized Advice"):
-                if st.session_state.qa_chain:
-                    with st.spinner("Generating your personalized investment advice..."):
-                        response = st.session_state.qa_chain({"query": question})
-                        st.markdown("### 🎯 Your Personalized Investment Advice")
-                        st.info(response["result"])
-
-                        # Add FD rate information
-                        fd_rates = get_fd_rates()
-                        st.markdown("#### Fixed Deposit Rates")
-                        for bank, rate in fd_rates.items():
-                            st.write(f"- {bank}: {rate:.2f}%")
-
-                        st.plotly_chart(create_investment_allocation_chart(response["result"]), use_container_width=True)
+        if st.button("Load Financial Data"):
+            with st.spinner("Loading data..."):
+                sklearn_store = setup_data_and_vectorstore()
+                if sklearn_store:
+                    st.session_state.qa_chain = create_qa_chain(sklearn_store)
+                    st.success("Data loaded successfully. You can now ask for investment advice!")
                 else:
-                    st.error("Please load the financial data first by clicking the 'Load Financial Data' button.")
+                    st.error("Failed to load data.")
 
+        question = st.text_area("What would you like to know about investing?", height=100)
 
-   
+        if st.button("Get Personalized Advice"):
+            if st.session_state.qa_chain:
+                with st.spinner("Generating your personalized investment advice..."):
+                    # Use the new chain format
+                    response = st.session_state.qa_chain.invoke({"input": question})
+                    st.markdown("### 🎯 Your Personalized Investment Advice")
+                    st.info(response["answer"])
 
+                    # Add FD rate information
+                    fd_rates = get_fd_rates()
+                    st.markdown("#### Fixed Deposit Rates")
+                    for bank, rate in fd_rates.items():
+                        st.write(f"- {bank}: {rate:.2f}%")
 
+                    st.plotly_chart(create_investment_allocation_chart(response["answer"]), use_container_width=True)
+            else:
+                st.error("Please load the financial data first by clicking the 'Load Financial Data' button.")
     
     with tab4:
         st.markdown("## 📊 Financial Dashboard")
@@ -948,13 +709,8 @@ def main():
                 fig.add_trace(go.Scatter(x=future_dates, y=predictions, name='Predicted'))
                 fig.update_layout(title=f'{stock_symbol} Stock Price Prediction', xaxis_title='Date', yaxis_title='Price')
                 st.plotly_chart(fig, use_container_width=True)
-
- 
-
-
-    with tab6:
-        
-
+    
+    with tab5:
         st.markdown("## 🎓 Financial Education Hub")
         st.markdown("### 📚 Educational Resources")
         with st.expander("📘 Investment Basics"):
@@ -977,7 +733,6 @@ def main():
             st.write("Discover various methods for analyzing financial markets, including fundamental and technical analysis.")
             st.markdown('[Learn more about Market Analysis Techniques](https://nwokediothniel.medium.com/understanding-market-analysis-techniques-a-comprehensive-guide-928a124a2e7b)')
 
-        
         st.markdown("### 🤔 Sample Questions to Get You Started")
         for category, questions in Config.SAMPLE_QUESTIONS.items():
             with st.expander(category):
@@ -1049,7 +804,6 @@ def main():
 
         # Financial News Feed
         st.markdown("### 📰 Latest Financial News")
-        # In a real application, you would fetch this data from a financial news API
         news_items = [
             "Stock Market Reaches New High",
             "Federal Reserve Announces Interest Rate Decision",
@@ -1080,29 +834,20 @@ def main():
             with st.chat_message("assistant"):
                 if st.session_state.qa_chain:
                     message_placeholder = st.empty()
-                    full_response = ""
-                    for response in st.session_state.qa_chain.run(prompt):
-                        full_response += response
-                        message_placeholder.markdown(full_response + "▌")
-                    message_placeholder.markdown(full_response)
+                    try:
+                        response = st.session_state.qa_chain.invoke({"input": prompt})
+                        full_response = response["answer"]
+                        message_placeholder.markdown(full_response)
+                        st.session_state.messages.append({"role": "assistant", "content": full_response})
+                    except Exception as e:
+                        error_msg = f"An error occurred: {str(e)}"
+                        message_placeholder.markdown(error_msg)
+                        st.session_state.messages.append({"role": "assistant", "content": error_msg})
                 else:
-                    st.markdown("Please load the financial data first by clicking the 'Load Financial Data' button in the Investment Advice tab.")
-            
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-
-
-
-
-
-
+                    no_data_msg = "Please load the financial data first by clicking the 'Load Financial Data' button in the Investment Advice tab."
+                    st.markdown(no_data_msg)
+                    st.session_state.messages.append({"role": "assistant", "content": no_data_msg})
 
 if __name__ == "__main__":
     logging.info("Starting MarketWealth Genius: Your AI Financial Advisor")
     main()
-
-
-
-
-
-
-
