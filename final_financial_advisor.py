@@ -11,7 +11,8 @@ from langchain_community.vectorstores import SKLearnVectorStore
 from sklearn.neighbors import NearestNeighbors
 # from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from langchain.llms import OpenAI
+# from langchain.llms import OpenAI
+from langchain_openai import OpenAI
 from langchain.chains import RetrievalQA
 import json
 import plotly.graph_objects as go
@@ -1094,6 +1095,7 @@ def main():
 if __name__ == "__main__":
     logging.info("Starting MarketWealth Genius: Your AI Financial Advisor")
     main()
+
 
 
 
