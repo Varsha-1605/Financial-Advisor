@@ -15,7 +15,9 @@ from langchain_openai import OpenAIEmbeddings
 from langchain_openai import OpenAI
 # from langchain.chains import RetrievalQA
 # from langchain.chains import RetrievalQA
-from langchain_community.chains import RetrievalQA
+# from langchain_community.chains import RetrievalQA
+from langchain.chains.retrieval_qa.base import RetrievalQA
+
 import json
 import plotly.graph_objects as go
 import plotly.express as px
@@ -1097,6 +1099,7 @@ def main():
 if __name__ == "__main__":
     logging.info("Starting MarketWealth Genius: Your AI Financial Advisor")
     main()
+
 
 
 
