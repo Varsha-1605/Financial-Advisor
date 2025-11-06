@@ -11,5 +11,5 @@ numpy>=1.26.2
 faker
 langchain_openai
 yfinance
-langchain_core
-langchain_text_splitter
+langchain-core
+langchain-text-splitters
