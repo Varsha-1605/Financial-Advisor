@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 # from langchain.schema import Document
 from langchain_core.documents import Document
-from langchain_text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 # from langchain.vectorstores import SKLearnVectorStore
 from langchain_community.vectorstores import SKLearnVectorStore
 from sklearn.neighbors import NearestNeighbors
@@ -1094,4 +1094,5 @@ def main():
 if __name__ == "__main__":
     logging.info("Starting MarketWealth Genius: Your AI Financial Advisor")
     main()
+
 
