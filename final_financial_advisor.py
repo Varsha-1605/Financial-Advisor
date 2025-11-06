@@ -3,11 +3,14 @@ import pandas as pd
 import os
 import logging
 from tqdm import tqdm
-from langchain.schema import Document
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import SKLearnVectorStore
+# from langchain.schema import Document
+from langchain_core.documents import Document
+from langchain_text_splitter import RecursiveCharacterTextSplitter
+# from langchain.vectorstores import SKLearnVectorStore
+from langchain_community.vectorstores import SKLearnVectorStore
 from sklearn.neighbors import NearestNeighbors
-from langchain.embeddings.openai import OpenAIEmbeddings
+# from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain.llms import OpenAI
 from langchain.chains import RetrievalQA
 import json
@@ -1091,3 +1094,4 @@ def main():
 if __name__ == "__main__":
     logging.info("Starting MarketWealth Genius: Your AI Financial Advisor")
     main()
+
